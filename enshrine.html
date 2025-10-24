@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ENSHRINE TOW - 謎解きウェブサイト</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f0e6d6;
+            margin: 0;
+            padding: 20px;
+            overflow-x: hidden; /* 横スクロール防止 */
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 900px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 15px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        h1 {
+            color: #4b3832;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            letter-spacing: 2px;
+        }
+
+        #rule-section, #box-selection, #stage-area, #result-area {
+            margin-bottom: 40px;
+            padding: 20px;
+            border: 1px solid #d4c1ad;
+            border-radius: 10px;
+            background-color: #fdfaf7;
+        }
+
+        #rule-section h2, #box-selection h2, #stage-area h2, #result-area h2 {
+            color: #6a5349;
+            font-size: 1.8em;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #e0d0bd;
+            padding-bottom: 5px;
+        }
+
+        .rules ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .rules li {
+            margin-bottom: 10px;
+            line-height: 1.6;
+            color: #5a4b45;
+        }
+
+        .rules strong {
+            color: #8c4c3e;
+        }
+
+        #available-boxes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            min-height: 120px; /* 箱がない時に崩れないように */
+        }
+
+        #stage {
+            display: flex;
+            flex-direction: column-reverse; /* 下から積むように */
+            align-items: center;
+            min-height: 500px; /* ステージの最低高 */
+            background-color: #e0d0bd;
+            border-radius: 8px;
+            padding: 20px 0;
+            position: relative;
+        }
+
+        .stage-slot {
+            width: 100px;
+            height: 100px;
+            border: 2px dashed #a09080;
+            margin-top: -2px; /* 箱の間に隙間ができないように */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #a09080;
+            font-size: 0.9em;
+            position: relative;
+            background-color: #fdfaf7;
+            box-sizing: border-box; /* paddingを含めて幅を計算 */
+        }
+        .stage-slot:last-child {
+             border-bottom: none; /* 一番下のスロットの下線は不要 */
+        }
+
+        /* 箱の3Dスタイル */
+        .box {
+            width: 100px;
+            height: 100px;
+            position: relative;
+            transform-style: preserve-3d;
+            cursor: grab;
+            transition: transform 0.3s ease-in-out, box-shadow 0.2s;
+            transform-origin: 50% 50% -50px; /* 回転軸を底面に */
+            margin-top: -2px; /* 積み重ねた時に重なる部分 */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border: 1px solid #7a6a5a;
+            box-sizing: border-box;
+            background-color: #c9b49b; /* ベースカラー */
+            z-index: 10;
+        }
+
+        .box:hover {
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .box.dragging {
+            opacity: 0.7;
+            z-index: 1000; /* ドラッグ中は最前面 */
+        }
+
+        .box-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: #c9b49b; /* 箱の共通色 */
+            border: 1px solid #a09080;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9em;
+            color: #4b3832;
+            text-align: center;
+            backface-visibility: hidden; /* 裏面を非表示 */
+        }
+
+        /* 3D変換 */
+        .box-face.front {
+            transform: rotateY(0deg) translateZ(50px);
+        }
+        .box-face.right {
+            transform: rotateY(90deg) translateZ(50px);
+        }
+        .box-face.back {
+            transform: rotateY(180deg) translateZ(50px);
+        }
+        .box-face.left {
+            transform: rotateY(-90deg) translateZ(50px);
+        }
+        .box-face.top {
+            transform: rotateX(90deg) translateZ(50px);
+            background-color: #f0e6d6; /* 上面は明るく */
+            border: none; /* 上面は境界なし */
+        }
+        .box-face.bottom {
+            transform: rotateX(-90deg) translateZ(50px);
+            background-color: #f0e6d6; /* 底面は明るく */
+            border: none; /* 底面は境界なし */
+        }
+        
+        /* 穴の表現 */
+        .hole {
+            width: 20px;
+            height: 20px;
+            background-color: #6a5349;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* テキストの縦書き風表現 */
+        .vertical-text {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            width: 100%;
+            font-size: 0.8em;
+            line-height: 1.2;
+        }
+
+        .vertical-text span {
+            display: block;
+        }
+
+        /* 個別の箱のスタイル調整 */
+        .box[data-id="box1"] .box-face.front { background-color: #9c6e4e; } /* 箱1を少し違う色に */
+        .box[data-id="box1"] .box-face.right { background-color: #8a6245; }
+        /* 他の箱も同様に設定可能 */
+
+        /* 回転状態 */
+        .box[data-rotation="0"] { transform: rotateY(0deg); }
+        .box[data-rotation="90"] { transform: rotateY(90deg); }
+        .box[data-rotation="180"] { transform: rotateY(180deg); }
+        .box[data-rotation="270"] { transform: rotateY(270deg); }
+
+        .check-button {
+            display: block;
+            width: fit-content;
+            margin: 30px auto;
+            padding: 15px 30px;
+            font-size: 1.3em;
+            color: #fff;
+            background-color: #8c4c3e;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        .check-button:hover {
+            background-color: #6a3a30;
+            transform: translateY(-2px);
+        }
+
+        .check-button:active {
+            transform: translateY(0);
+        }
+
+        #result-text {
+            text-align: center;
+            font-size: 1.5em;
+            color: #4b3832;
+            min-height: 50px;
+        }
+
+        .correct-message {
+            color: #28a745;
+            font-weight: bold;
+            font-size: 1.8em;
+            margin-top: 20px;
+        }
+
+        .incorrect-message {
+            color: #dc3545;
+            font-weight: bold;
+            font-size: 1.8em;
+            margin-top: 20px;
+        }
+
+        /* モーダル */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1001; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.7); /* Black w/ opacity */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 40px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 10px;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-content h3 {
+            font-size: 2em;
+            color: #8c4c3e;
+            margin-bottom: 20px;
+        }
+
+        .modal-answer-char {
+            font-size: 5em;
+            font-weight: bold;
+            color: #4b3832;
+            margin-bottom: 30px;
+            display: block;
+            min-height: 1.2em;
+        }
+
+        .modal-message {
+            font-size: 1.2em;
+            color: #5a4b45;
+            margin-bottom: 30px;
+        }
+
+        .modal-button {
+            background-color: #8c4c3e;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: background-color 0.3s;
+        }
+
+        .modal-button:hover {
+            background-color: #6a3a30;
+        }
+        
+        .modal-hidden {
+            display: none;
+        }
+
+        /* デバッグ用 */
+        #debug-info {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 0.8em;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h1>ENSHRINE TOW</h1>
+
+        <section id="rule-section">
+            <h2>遊び方</h2>
+            <div class="rules">
+                <ul>
+                    <li><strong>STEP1:</strong> 箱をタップして側面を確認し、正しい向きに調整しよう。</li>
+                    <li><strong>STEP2:</strong> 各箱の法則を推測し、**順番に箱を全て重ねよう。** (今回は**箱1から箱9の順**です)</li>
+                    <li><strong>STEP3:</strong> 正しく重ねられたら、ボタンを押して穴から見える文字を読もう。</li>
+                    <li><strong>STEP4:</strong> 1文字読んだら上の箱が外れ、次の文字を読めるよ。これを繰り返して最後の答えを導こう。</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="box-selection">
+            <h2>利用可能な箱</h2>
+            <div id="available-boxes">
+                </div>
+        </section>
+
+        <section id="stage-area">
+            <h2>土台（ここに箱を積み重ねよう）</h2>
+            <div id="stage">
+                <div class="box stage-slot" data-slot-id="0" style="background-color: #8c4c3e; border: 2px solid #6a3a30; margin-bottom: 0;">
+                    土台
+                    <div class="box-face bottom" style="transform: rotateX(-90deg) translateZ(50px); background-color: #8c4c3e; color: white;">
+                        <div class="vertical-text">
+                            <span>土</span><span>台</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="stage-slot" data-slot-id="1">箱1</div>
+                <div class="stage-slot" data-slot-id="2">箱2</div>
+                <div class="stage-slot" data-slot-id="3">箱3</div>
+                <div class="stage-slot" data-slot-id="4">箱4</div>
+                <div class="stage-slot" data-slot-id="5">箱5</div>
+                <div class="stage-slot" data-slot-id="6">箱6</div>
+                <div class="stage-slot" data-slot-id="7">箱7</div>
+                <div class="stage-slot" data-slot-id="8">箱8</div>
+                <div class="stage-slot" data-slot-id="9">箱9</div>
+            </div>
+            <button class="check-button" id="check-order-button">箱の積み方を確認</button>
+        </section>
+
+        <section id="result-area" style="display: none;">
+            <h2>結果</h2>
+            <p id="result-text"></p>
+            <button class="check-button" id="next-char-button" style="display: none;">次の文字を見る</button>
+            <button class="check-button" id="reset-button" style="display: none;">最初からやり直す</button>
+        </section>
+    </div>
+
+    <div id="answer-modal" class="modal modal-hidden">
+        <div class="modal-content">
+            <h3>穴から見えた文字</h3>
+            <span id="modal-char" class="modal-answer-char"></span>
+            <p id="modal-message" class="modal-message"></p>
+            <button id="modal-next-button" class="modal-button">次へ</button>
+            <button id="modal-finish-button" class="modal-button modal-hidden">ゲームクリア！</button>
+        </div>
+    </div>
+
+    <div id="debug-info" style="display: none;">
+        現在の箱の状態:<br>
+        <pre id="debug-box-state"></pre>
+        ステージの状態:<br>
+        <pre id="debug-stage-state"></pre>
+    </div>
+
+    <script>
+        // デバッグモードの切り替え (true:表示, false:非表示)
+        const DEBUG_MODE = false; 
+
+        // 謎解きデータ
+        const boxData = {
+            "box1": {
+                faces: ["くまもと", "", "", "よみ"],
+                bottomChar: "こ"
+            },
+            "box2": {
+                faces: ["とら", "ふじさん", "とうしき", ""],
+                bottomChar: "た"
+            },
+            "box3": {
+                faces: ["", "くれよん", "", "べよ"],
+                bottomChar: "え"
+            },
+            "box4": {
+                faces: ["らいぶ", "らくご", "カトラリー", ""],
+                bottomChar: "は"
+            },
+            "box5": {
+                faces: ["", "しろくま", "うた", ""],
+                bottomChar: "ま"
+            },
+            "box6": {
+                faces: ["ぶし", "", "こたつ", "らて"],
+                bottomChar: "て"
+            },
+            "box7": {
+                faces: ["しずおか", "", "かみ", ""],
+                bottomChar: "ん"
+            },
+            "box8": {
+                faces: ["かたた", "", "しゅうまい", ""],
+                bottomChar: "ろ"
+            },
+            "box9": {
+                faces: ["", "ばなな", "ひつじゅひん", "なた"],
+                bottomChar: "う"
+            }
+        };
+
+        // 正しい答えの羅列
+        const correctAnswerSequence = "こたえはまてんろう".split('');
+        
+        // 箱のDOM要素を保持する配列
+        const boxes = [];
+        // ステージのスロット要素を保持する配列
+        const stageSlots = [];
+        // 現在ステージに配置されている箱の情報を保持
+        const stage = Array(9).fill(null); // [null, {id: 'box1', rotation: 0}, ...]
+
+        let currentDraggingBox = null;
+        let currentModalCharIndex = 0; // 現在表示中の文字のインデックス
+
+        // --- 初期化処理 ---
+        function initGame() {
+            const availableBoxesContainer = document.getElementById('available-boxes');
+            const stageElement = document.getElementById('stage');
+            availableBoxesContainer.innerHTML = ''; // 初期化
+
+            // 箱を作成し、ドラッグ＆ドロップと回転イベントを設定
+            for (let i = 1; i <= 9; i++) {
+                const boxId = `box${i}`;
+                const boxElement = createBoxElement(boxId, boxData[boxId]);
+                availableBoxesContainer.appendChild(boxElement);
+                boxes.push(boxElement);
+            }
+
+            // ステージスロットを生成し、ドロップイベントを設定 (最下段の土台除く)
+            for (let i = 1; i <= 9; i++) {
+                const slot = stageElement.querySelector(`.stage-slot[data-slot-id="${i}"]`);
+                if (slot) {
+                    stageSlots.push(slot);
+                    slot.addEventListener('dragover', allowDrop);
+                    slot.addEventListener('drop', dropBox);
+                    slot.addEventListener('dragleave', removeDragOver);
+                }
+            }
+            
+            // 最下段の土台にもドロップイベントを設定 (デバッグ用や万一の時)
+            const baseSlot = stageElement.querySelector('.stage-slot[data-slot-id="0"]');
+            if(baseSlot) {
+                baseSlot.addEventListener('dragover', allowDrop);
+                baseSlot.addEventListener('drop', dropBox);
+                baseSlot.addEventListener('dragleave', removeDragOver);
+            }
+
+            document.getElementById('check-order-button').addEventListener('click', checkOrder);
+            document.getElementById('modal-next-button').addEventListener('click', showNextCharInModal);
+            document.getElementById('modal-finish-button').addEventListener('click', closeModal);
+            document.getElementById('reset-button').addEventListener('click', resetGame);
+            
+            if (DEBUG_MODE) {
+                document.getElementById('debug-info').style.display = 'block';
+                updateDebugInfo();
+            }
+        }
+
+        // 箱のDOM要素を作成する関数
+        function createBoxElement(id, data) {
+            const box = document.createElement('div');
+            box.classList.add('box');
+            box.setAttribute('draggable', 'true');
+            box.dataset.id = id;
+            box.dataset.rotation = 0; // 0:側面①, 90:側面②, 180:側面③, 270:側面④
+            box.dataset.currentFace = 0; // 現在表示されているfaceIndex
+
+            // 前面
+            const front = document.createElement('div');
+            front.classList.add('box-face', 'front');
+            front.innerHTML = `<div class="vertical-text">${formatText(data.faces[0])}</div>`;
+            box.appendChild(front);
+
+            // 右面
+            const right = document.createElement('div');
+            right.classList.add('box-face', 'right');
+            right.innerHTML = `<div class="vertical-text">${formatText(data.faces[1])}</div>`;
+            box.appendChild(right);
+
+            // 背面
+            const back = document.createElement('div');
+            back.classList.add('box-face', 'back');
+            back.innerHTML = `<div class="vertical-text">${formatText(data.faces[2])}</div>`;
+            box.appendChild(back);
+
+            // 左面
+            const left = document.createElement('div');
+            left.classList.add('box-face', 'left');
+            left.innerHTML = `<div class="vertical-text">${formatText(data.faces[3])}</div>`;
+            box.appendChild(left);
+
+            // 底面 (穴から見える文字用)
+            const bottom = document.createElement('div');
+            bottom.classList.add('box-face', 'bottom');
+            bottom.innerHTML = `<div class="hole"></div><span style="font-size: 2em; color: #4b3832;">${data.bottomChar}</span>`;
+            box.appendChild(bottom);
+
+            // イベントリスナー
+            box.addEventListener('click', rotateBox);
+            box.addEventListener('dragstart', dragStart);
+            box.addEventListener('dragend', dragEnd);
+
+            return box;
+        }
+
+        // テキストを縦書き風に整形
+        function formatText(text) {
+            if (!text) return '&nbsp;'; // 空の場合はスペース
+            return text.split('').map(char => `<span>${char}</span>`).join('');
+        }
+
+        // --- ドラッグ＆ドロップ処理 ---
+        function dragStart(e) {
+            currentDraggingBox = this;
+            e.dataTransfer.setData('text/plain', this.dataset.id);
+            this.classList.add('dragging');
+            // ドラッグ中のゴーストイメージをカスタム
+            const dragImg = this.cloneNode(true);
+            dragImg.style.position = 'absolute';
+            dragImg.style.top = '-1000px';
+            document.body.appendChild(dragImg);
+            e.dataTransfer.setDragImage(dragImg, 50, 50); // ドラッグ中のイメージとそのオフセット
+            setTimeout(() => dragImg.remove(), 0); // すぐに削除
+        }
+
+        function dragEnd() {
+            if (currentDraggingBox) {
+                currentDraggingBox.classList.remove('dragging');
+                currentDraggingBox = null;
+            }
+        }
+
+        function allowDrop(e) {
+            e.preventDefault();
+            this.classList.add('drag-over'); // ドラッグ中の視覚的なフィードバック
+        }
+
+        function dropBox(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+
+            const boxId = e.dataTransfer.getData('text/plain');
+            const boxToMove = boxes.find(b => b.dataset.id === boxId);
+            
+            if (!boxToMove) return;
+
+            // 元の場所から箱を削除
+            const oldSlotIndex = stage.findIndex(item => item && item.id === boxId);
+            if (oldSlotIndex !== -1) {
+                stage[oldSlotIndex] = null;
+                const oldSlotElement = stageSlots[oldSlotIndex];
+                if (oldSlotElement) {
+                    oldSlotElement.appendChild(document.createTextNode(`箱${oldSlotIndex + 1}`));
+                    oldSlotElement.style.backgroundColor = '#fdfaf7';
+                    oldSlotElement.style.color = '#a09080';
+                }
+            } else {
+                // available-boxes から削除
+                const availableBoxParent = document.getElementById('available-boxes');
+                if (availableBoxParent.contains(boxToMove)) {
+                    availableBoxParent.removeChild(boxToMove);
+                }
+            }
+
+            // 新しいスロットに配置
+            const targetSlotId = parseInt(this.dataset.slotId);
+            if (!isNaN(targetSlotId) && targetSlotId > 0) { // 土台(slotId=0)には置けない
+                const stageIndex = targetSlotId - 1; // stage配列のインデックスは0から
+                
+                // もし新しいスロットに既に箱があれば、available-boxesに戻す
+                if (stage[stageIndex]) {
+                    const existingBoxId = stage[stageIndex].id;
+                    const existingBoxElement = boxes.find(b => b.dataset.id === existingBoxId);
+                    if (existingBoxElement) {
+                        document.getElementById('available-boxes').appendChild(existingBoxElement);
+                    }
+                }
+
+                // 箱をステージスロットに配置
+                stage[stageIndex] = { id: boxId, rotation: parseInt(boxToMove.dataset.rotation) };
+                this.innerHTML = ''; // スロット内のテキストをクリア
+                this.style.backgroundColor = 'transparent';
+                this.style.color = 'transparent';
+                this.appendChild(boxToMove);
+                updateDebugInfo();
+            } else {
+                // 土台(slotId=0)や無効なスロットへのドロップはavailable-boxesに戻す
+                document.getElementById('available-boxes').appendChild(boxToMove);
+            }
+        }
+
+        function removeDragOver() {
+            this.classList.remove('drag-over');
+        }
+
+        // --- 箱の回転処理 ---
+        function rotateBox(e) {
+            // ドラッグ中のクリックイベントは無視
+            if (e.target.closest('.box').classList.contains('dragging')) {
+                return;
+            }
+            // 親要素のboxに対して回転処理を行う
+            const box = e.currentTarget;
+            let currentRotation = parseInt(box.dataset.rotation || 0);
+            currentRotation = (currentRotation + 90) % 360;
+            box.dataset.rotation = currentRotation;
+            box.style.transform = `rotateY(${currentRotation}deg)`;
+
+            // 現在表示されている面のインデックスを更新
+            box.dataset.currentFace = (parseInt(box.dataset.currentFace) + 1) % 4;
+
+            updateDebugInfo();
+        }
+
+        // --- 正誤判定処理 ---
+        function checkOrder() {
+            document.getElementById('result-area').style.display = 'block';
+            document.getElementById('check-order-button').style.display = 'none';
+
+            let isCorrectOrder = true;
+            let isCorrectFace = true;
+
+            for (let i = 0; i < 9; i++) {
+                const expectedBoxId = `box${i + 1}`; // 箱1, 箱2, ...
+                const placedBox = stage[i];
+
+                if (!placedBox || placedBox.id !== expectedBoxId) {
+                    isCorrectOrder = false;
+                    break;
+                }
+                
+                // 側面①が正面 (rotation=0) であることを確認
+                if (placedBox.rotation !== 0) {
+                    isCorrectFace = false;
+                }
+            }
+
+            const resultTextElement = document.getElementById('result-text');
+            const nextCharButton = document.getElementById('next-char-button');
+            const resetButton = document.getElementById('reset-button');
+            
+            if (isCorrectOrder && isCorrectFace) {
+                resultTextElement.innerHTML = '<span class="correct-message">正解！穴から文字が見えるよ！</span>';
+                nextCharButton.style.display = 'block';
+                currentModalCharIndex = 0;
+                showNextCharInModal(); // 最初の文字をモーダルで表示
+            } else {
+                let errorMessage = '<span class="incorrect-message">残念！箱の積み方か向きが違うよ。</span><br>もう一度確認してみよう。';
+                if (!isCorrectOrder) {
+                    errorMessage += '<br><small>(箱の順番を確認してね)</small>';
+                }
+                if (!isCorrectFace) {
+                    errorMessage += '<br><small>(箱の向き(側面①)を確認してね)</small>';
+                }
+                resultTextElement.innerHTML = errorMessage;
+                resetButton.style.display = 'block';
+            }
+        }
+
+        // --- モーダル表示と文字表示処理 ---
+        function showNextCharInModal() {
+            const modal = document.getElementById('answer-modal');
+            const modalChar = document.getElementById('modal-char');
+            const modalMessage = document.getElementById('modal-message');
+            const modalNextButton = document.getElementById('modal-next-button');
+            const modalFinishButton = document.getElementById('modal-finish-button');
+            
+            if (currentModalCharIndex < correctAnswerSequence.length) {
+                modalChar.textContent = correctAnswerSequence[currentModalCharIndex];
+                modalMessage.textContent = `${currentModalCharIndex + 1}文字目だよ。`;
+                modal.classList.remove('modal-hidden');
+                modal.style.display = 'flex'; // Flex to center content
+
+                currentModalCharIndex++;
+
+                if (currentModalCharIndex === correctAnswerSequence.length) {
+                    // 全ての文字を表示し終えたら
+                    modalNextButton.classList.add('modal-hidden');
+                    modalFinishButton.classList.remove('modal-hidden');
+                    modalMessage.textContent = '全ての文字を読み終えたね！ゲームクリア！';
+                } else {
+                    modalNextButton.classList.remove('modal-hidden');
+                    modalFinishButton.classList.add('modal-hidden');
+                }
+                // 上の箱を非表示にするアニメーション（視覚的な演出）
+                const boxToRemoveIndex = currentModalCharIndex - 1; // 0番目の文字を表示したら箱1を消す
+                if (boxToRemoveIndex >= 0 && boxToRemoveIndex < 9) {
+                    const boxElement = stageSlots[boxToRemoveIndex].querySelector('.box');
+                    if (boxElement) {
+                        boxElement.style.opacity = '0';
+                        boxElement.style.pointerEvents = 'none'; // クリックできないように
+                        boxElement.style.transform = `translateY(-100px) rotateY(${boxElement.dataset.rotation}deg)`; // 上に移動
+                    }
+                }
+            } else {
+                // 全ての文字を見終わった後の挙動（モーダルを閉じるなど）
+                closeModal();
+                document.getElementById('result-text').innerHTML = '<span class="correct-message">ゲームクリア！お疲れ様でした！</span>';
+                document.getElementById('next-char-button').style.display = 'none';
+                document.getElementById('reset-button').style.display = 'block';
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('answer-modal').classList.add('modal-hidden');
+            document.getElementById('answer-modal').style.display = 'none';
+        }
+
+        // --- ゲームリセット ---
+        function resetGame() {
+            // ステージをリセット
+            stage.fill(null);
+            stageSlots.forEach((slot, index) => {
+                slot.innerHTML = `箱${index + 1}`;
+                slot.style.backgroundColor = '#fdfaf7';
+                slot.style.color = '#a09080';
+            });
+
+            // 全ての箱をavailable-boxesに戻し、回転をリセット
+            const availableBoxesContainer = document.getElementById('available-boxes');
+            boxes.forEach(box => {
+                box.style.transform = 'rotateY(0deg)';
+                box.dataset.rotation = 0;
+                box.dataset.currentFace = 0;
+                box.style.opacity = '1';
+                box.style.pointerEvents = 'auto';
+                availableBoxesContainer.appendChild(box);
+            });
+
+            // UI要素をリセット
+            document.getElementById('result-area').style.display = 'none';
+            document.getElementById('result-text').textContent = '';
+            document.getElementById('check-order-button').style.display = 'block';
+            document.getElementById('next-char-button').style.display = 'none';
+            document.getElementById('reset-button').style.display = 'none';
+            closeModal(); // モーダルが開いていたら閉じる
+            currentModalCharIndex = 0;
+
+            updateDebugInfo();
+        }
+
+        // --- デバッグ情報更新 ---
+        function updateDebugInfo() {
+            if (DEBUG_MODE) {
+                document.getElementById('debug-box-state').textContent = JSON.stringify(boxes.map(b => ({
+                    id: b.dataset.id,
+                    rotation: b.dataset.rotation,
+                    currentFace: b.dataset.currentFace
+                })), null, 2);
+                document.getElementById('debug-stage-state').textContent = JSON.stringify(stage, null, 2);
+            }
+        }
+
+        // ページロード時にゲームを初期化
+        document.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html>
