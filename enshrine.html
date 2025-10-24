@@ -3,813 +3,702 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ENSHRINE TOW - 謎解きウェブサイト</title>
+    <title>ENSHRINE TOWER - 1面表示パズル</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: 'Noto Sans JP', sans-serif; 
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
             min-height: 100vh;
-            background-color: #f0e6d6;
+            background-color: #1c2331; 
             margin: 0;
             padding: 20px;
-            overflow-x: hidden; /* 横スクロール防止 */
+            color: #ffffff;
         }
 
         #game-container {
             width: 100%;
-            max-width: 900px;
+            max-width: 500px;
             padding: 20px;
-            background-color: #fff;
-            border-radius: 15px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-            position: relative;
+            background-color: #2d3a4c;
+            border-radius: 8px;
+            border: 4px solid #f4d03f;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
         }
 
         h1 {
-            color: #4b3832;
+            font-family: 'Noto Sans JP', sans-serif;
+            color: #f4d03f;
             text-align: center;
             margin-bottom: 30px;
-            font-size: 2.5em;
-            letter-spacing: 2px;
+            font-size: 2.5em; 
+            letter-spacing: 5px; 
+            text-shadow: 0 0 5px rgba(244, 208, 63, 0.5);
+            font-weight: 900;
         }
 
-        #rule-section, #box-selection, #stage-area, #result-area {
+        section {
             margin-bottom: 40px;
             padding: 20px;
-            border: 1px solid #d4c1ad;
-            border-radius: 10px;
-            background-color: #fdfaf7;
+            border: 1px solid #f4d03f;
+            border-radius: 5px; 
+            background-color: #2d3a4c;
+            box-shadow: none;
         }
 
-        #rule-section h2, #box-selection h2, #stage-area h2, #result-area h2 {
-            color: #6a5349;
-            font-size: 1.8em;
+        h2 {
+            font-family: 'Noto Sans JP', sans-serif;
+            color: #ffffff;
+            font-size: 1.5em;
             margin-bottom: 15px;
-            border-bottom: 2px solid #e0d0bd;
+            border-bottom: 1px solid #f4d03f;
             padding-bottom: 5px;
+            text-align: center;
+            font-weight: 700;
+        }
+        
+        .rules {
+            margin-top: -10px;
+        }
+
+        .rules h3 {
+            font-size: 1.25em;
+            color: #f4d03f;
+            margin-top: 25px;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #f4d03f;
+            padding-bottom: 5px;
+            font-weight: 700;
+            text-align: left;
+        }
+        .rules h3:first-of-type {
+            margin-top: 0;
         }
 
         .rules ul {
             list-style: none;
             padding: 0;
+            margin: 0;
         }
 
         .rules li {
-            margin-bottom: 10px;
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background-color: #3c4757;
+            border-left: 5px solid #f4d03f;
+            border-radius: 3px;
             line-height: 1.6;
-            color: #5a4b45;
+            font-size: 0.95em;
+            color: #ffffff;
         }
 
         .rules strong {
-            color: #8c4c3e;
-        }
-
-        #available-boxes {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            justify-content: center;
-            min-height: 120px; /* 箱がない時に崩れないように */
-        }
-
-        #stage {
-            display: flex;
-            flex-direction: column-reverse; /* 下から積むように */
-            align-items: center;
-            min-height: 500px; /* ステージの最低高 */
-            background-color: #e0d0bd;
-            border-radius: 8px;
-            padding: 20px 0;
-            position: relative;
-        }
-
-        .stage-slot {
-            width: 100px;
-            height: 100px;
-            border: 2px dashed #a09080;
-            margin-top: -2px; /* 箱の間に隙間ができないように */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #a09080;
-            font-size: 0.9em;
-            position: relative;
-            background-color: #fdfaf7;
-            box-sizing: border-box; /* paddingを含めて幅を計算 */
-        }
-        .stage-slot:last-child {
-             border-bottom: none; /* 一番下のスロットの下線は不要 */
-        }
-
-        /* 箱の3Dスタイル */
-        .box {
-            width: 100px;
-            height: 100px;
-            position: relative;
-            transform-style: preserve-3d;
-            cursor: grab;
-            transition: transform 0.3s ease-in-out, box-shadow 0.2s;
-            transform-origin: 50% 50% -50px; /* 回転軸を底面に */
-            margin-top: -2px; /* 積み重ねた時に重なる部分 */
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            border: 1px solid #7a6a5a;
-            box-sizing: border-box;
-            background-color: #c9b49b; /* ベースカラー */
-            z-index: 10;
-        }
-
-        .box:hover {
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-        }
-
-        .box.dragging {
-            opacity: 0.7;
-            z-index: 1000; /* ドラッグ中は最前面 */
-        }
-
-        .box-face {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background-color: #c9b49b; /* 箱の共通色 */
-            border: 1px solid #a09080;
-            box-sizing: border-box;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.9em;
-            color: #4b3832;
-            text-align: center;
-            backface-visibility: hidden; /* 裏面を非表示 */
-        }
-
-        /* 3D変換 */
-        .box-face.front {
-            transform: rotateY(0deg) translateZ(50px);
-        }
-        .box-face.right {
-            transform: rotateY(90deg) translateZ(50px);
-        }
-        .box-face.back {
-            transform: rotateY(180deg) translateZ(50px);
-        }
-        .box-face.left {
-            transform: rotateY(-90deg) translateZ(50px);
-        }
-        .box-face.top {
-            transform: rotateX(90deg) translateZ(50px);
-            background-color: #f0e6d6; /* 上面は明るく */
-            border: none; /* 上面は境界なし */
-        }
-        .box-face.bottom {
-            transform: rotateX(-90deg) translateZ(50px);
-            background-color: #f0e6d6; /* 底面は明るく */
-            border: none; /* 底面は境界なし */
+            color: #f4d03f;
+            font-weight: 700;
         }
         
-        /* 穴の表現 */
-        .hole {
-            width: 20px;
-            height: 20px;
-            background-color: #6a5349;
-            border-radius: 50%;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-
-        /* テキストの縦書き風表現 */
-        .vertical-text {
+        /* --- ステップアイコン --- */
+        .rule-step-icon {
             display: flex;
-            flex-direction: column;
-            justify-content: center;
             align-items: center;
-            height: 100%;
-            width: 100%;
-            font-size: 0.8em;
+            justify-content: center;
+            width: 30px; 
+            height: 30px;
+            background-color: #f4d03f;
+            color: #1c2331;
+            border-radius: 50%;
+            font-weight: 900;
+            font-size: 1.2em;
+            flex-shrink: 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+            margin-top: 5px; 
+        }
+        /* ----------------------- */
+
+        .rules i.fa-solid {
+            margin-right: 8px;
+            color: #f4d03f;
+        }
+        
+        /* --- ルールセクション内ボタン風要素のスタイル --- */
+        .rule-button-visual {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            margin: 0 2px;
+            background-color: #4a576c;
+            border: 1px solid #f4d03f;
+            border-radius: 5px;
+            color: #f4d03f;
+            font-weight: 700;
+            font-size: 0.9em;
+            vertical-align: middle;
+            user-select: none; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            white-space: nowrap; 
+            padding: 5px;
+            line-height: 1;
+        }
+        
+        .rule-button-visual.global-rotate-rule-button {
+            font-size: 0.7em; 
+            width: 50px; 
+            white-space: normal;
+            text-align: center;
             line-height: 1.2;
+            padding: 3px;
+        }
+        
+        .rule-icon-group {
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 5px;
+            margin-top: 5px;
+        }
+        
+        .rule-text-content {
+            flex-grow: 1;
+            padding-top: 5px;
+        }
+        .rule-text-content p {
+            margin: 0;
         }
 
-        .vertical-text span {
-            display: block;
+        /* 謎解きステージ */
+        #puzzle-stage {
+            display: flex;
+            flex-direction: column-reverse; /* 下から積む */
+            align-items: center;
+            gap: 5px;
+            padding-top: 10px;
+            min-height: 600px;
         }
 
-        /* 個別の箱のスタイル調整 */
-        .box[data-id="box1"] .box-face.front { background-color: #9c6e4e; } /* 箱1を少し違う色に */
-        .box[data-id="box1"] .box-face.right { background-color: #8a6245; }
-        /* 他の箱も同様に設定可能 */
+        .box-wrapper {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            max-width: 450px; 
+            transition: transform 0.3s ease;
+            justify-content: space-between;
+        }
 
-        /* 回転状態 */
-        .box[data-rotation="0"] { transform: rotateY(0deg); }
-        .box[data-rotation="90"] { transform: rotateY(90deg); }
-        .box[data-rotation="180"] { transform: rotateY(180deg); }
-        .box[data-rotation="270"] { transform: rotateY(270deg); }
+        /* 箱の表示部分 (画像コンテナ) */
+        .box-display {
+            width: 100%; 
+            max-width: 180px; 
+            height: 60px;
+            margin: 0 5px; 
+            border: 2px solid #5d6d7e;
+            background-color: #d8d8d8; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden; 
+            padding: 0;
+        }
+        .box-display img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
 
-        .check-button {
+        /* 土台スタイル */
+        .base-wrapper {
+            justify-content: center;
+            gap: 5px;
+        }
+        .base-box-display {
+            flex-grow: 1;
+            display: flex;
+            max-width: 180px;
+        }
+        .base-box {
+            flex-grow: 1;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f4d03f !important;
+            color: #1c2331 !important;
+            font-size: 1.1em;
+            cursor: default;
+            margin: 0 !important;
+            border: 2px solid #f4d03f;
+            overflow: hidden; 
+            padding: 0;
+        }
+        .base-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* 操作ボタン */
+        .swap-button {
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            background-color: #4a576c;
+            border: 1px solid #f4d03f;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Noto Sans Sans JP', sans-serif;
+            font-size: 1.1em;
+            color: #f4d03f;
+            transition: background-color 0.15s;
+            line-height: 1;
+        }
+        .swap-button:hover {
+            background-color: #5d6d7e;
+        }
+        .swap-button:disabled {
+            opacity: 0.3;
+            cursor: default;
+            border-color: #5d6d7e;
+            color: #5d6d7e;
+        }
+        
+        .rotate-button {
+            font-size: 1.1em; 
+            font-weight: bold;
+        }
+        
+        .global-rotate-button {
+            width: 60px; 
+            height: 60px; 
+            padding: 5px;
+            font-size: 0.9em; 
+            white-space: normal; 
+            line-height: 1.2; 
+            display: flex; 
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            border-radius: 8px; 
+        }
+
+        /* アクションボタン */
+        .action-button {
             display: block;
             width: fit-content;
-            margin: 30px auto;
-            padding: 15px 30px;
-            font-size: 1.3em;
-            color: #fff;
-            background-color: #8c4c3e;
-            border: none;
-            border-radius: 8px;
+            margin: 20px auto 10px;
+            padding: 10px 20px;
+            font-size: 1.1em;
+            color: #1c2331;
+            background-color: #f4d03f;
+            border: 2px solid #e6b800;
+            border-radius: 5px;
             cursor: pointer;
-            transition: background-color 0.3s, transform 0.2s;
+            transition: background-color 0.3s, transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+            font-family: 'Noto Sans JP', sans-serif;
+            font-weight: 700;
+        }
+        .action-button:hover {
+            background-color: #e6b800;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
         }
 
-        .check-button:hover {
-            background-color: #6a3a30;
-            transform: translateY(-2px);
-        }
-
-        .check-button:active {
-            transform: translateY(0);
-        }
-
-        #result-text {
-            text-align: center;
-            font-size: 1.5em;
-            color: #4b3832;
-            min-height: 50px;
-        }
-
-        .correct-message {
-            color: #28a745;
-            font-weight: bold;
-            font-size: 1.8em;
-            margin-top: 20px;
-        }
-
-        .incorrect-message {
-            color: #dc3545;
-            font-weight: bold;
-            font-size: 1.8em;
-            margin-top: 20px;
-        }
-
-        /* モーダル */
+        /* モーダル共通 */
         .modal {
-            display: none; /* Hidden by default */
-            position: fixed; /* Stay in place */
-            z-index: 1001; /* Sit on top */
+            display: none;
+            position: fixed;
+            z-index: 1001;
             left: 0;
             top: 0;
-            width: 100%; /* Full width */
-            height: 100%; /* Full height */
-            overflow: auto; /* Enable scroll if needed */
-            background-color: rgba(0,0,0,0.7); /* Black w/ opacity */
-            display: flex;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.85);
             align-items: center;
             justify-content: center;
         }
 
         .modal-content {
-            background-color: #fefefe;
-            margin: auto;
+            background-color: #2d3a4c;
             padding: 40px;
-            border: 1px solid #888;
+            border: 5px solid #f4d03f;
             width: 80%;
-            max-width: 600px;
-            border-radius: 10px;
+            max-width: 400px;
+            border-radius: 8px;
             text-align: center;
-            position: relative;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-            animation: fadeIn 0.5s;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .modal-content h3 {
-            font-size: 2em;
-            color: #8c4c3e;
-            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5), 0 0 15px rgba(244, 208, 63, 0.5);
+            color: #ffffff;
         }
 
         .modal-answer-char {
-            font-size: 5em;
-            font-weight: bold;
-            color: #4b3832;
-            margin-bottom: 30px;
+            font-size: 3em;
+            font-weight: 900;
+            color: #f4d03f;
+            margin-bottom: 20px;
             display: block;
-            min-height: 1.2em;
-        }
-
-        .modal-message {
-            font-size: 1.2em;
-            color: #5a4b45;
-            margin-bottom: 30px;
-        }
-
-        .modal-button {
-            background-color: #8c4c3e;
-            color: white;
-            padding: 12px 25px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1.1em;
-            transition: background-color 0.3s;
-        }
-
-        .modal-button:hover {
-            background-color: #6a3a30;
+            font-family: 'Noto Sans JP', sans-serif;
+            text-shadow: 0 0 8px rgba(244, 208, 63, 0.8);
         }
         
         .modal-hidden {
-            display: none;
-        }
-
-        /* デバッグ用 */
-        #debug-info {
-            position: fixed;
-            bottom: 10px;
-            right: 10px;
-            background-color: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-            font-size: 0.8em;
-            z-index: 100;
+            display: none !important;
         }
     </style>
 </head>
 <body>
     <div id="game-container">
-        <h1>ENSHRINE TOW</h1>
+        <h1>ENSHRINE TOWER</h1>
 
         <section id="rule-section">
-            <h2>遊び方</h2>
+            <h2>進め方と操作方法</h2>
             <div class="rules">
+                
+                <h3>進め方</h3>
                 <ul>
-                    <li><strong>STEP1:</strong> 箱をタップして側面を確認し、正しい向きに調整しよう。</li>
-                    <li><strong>STEP2:</strong> 各箱の法則を推測し、**順番に箱を全て重ねよう。** (今回は**箱1から箱9の順**です)</li>
-                    <li><strong>STEP3:</strong> 正しく重ねられたら、ボタンを押して穴から見える文字を読もう。</li>
-                    <li><strong>STEP4:</strong> 1文字読んだら上の箱が外れ、次の文字を読めるよ。これを繰り返して最後の答えを導こう。</li>
+                    <li style="align-items: flex-start;">
+                        <div class="rule-step-icon">1</div>
+                        <div class="rule-text-content" style="padding-top: 0;">
+                            <p>本来は箱の側面を観察しながら、法則を推測し、箱を重ねていきますが、今回は箱ではなく、箱の側面の情報を観察し、箱を正しく並び替えましょう。</p>
+                        </div>
+                    </li>
+                    <li style="align-items: flex-start;">
+                        <div class="rule-step-icon">2</div>
+                        <div class="rule-text-content" style="padding-top: 0;">
+                            <p>箱を正しく並び替えたら、<strong>判定ボタン</strong>を押しましょう。正解ならば最後の答えが表示されます。</p>
+                        </div>
+                    </li>
+                </ul>
+
+                <h3>操作方法</h3>
+                <ul>
+                    <li style="align-items: center;">
+                        <div class="rule-icon-group" style="gap: 5px;">
+                            <span class="rule-button-visual">▲</span>
+                            <span class="rule-button-visual">▼</span>
+                        </div>
+                        <div class="rule-text-content">
+                            箱の<span style="color: #f4d03f;">位置を上下に入れ替える。</span>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="rule-icon-group" style="gap: 5px;">
+                            <span class="rule-button-visual">左</span>
+                            <span class="rule-button-visual">右</span>
+                        </div>
+                        <div class="rule-text-content">
+                            箱を<span style="color: #f4d03f;">左右90度回転</span>させる。
+                        </div>
+                    </li>
+                    <li>
+                        <div class="rule-icon-group" style="gap: 5px;">
+                            <span class="rule-button-visual global-rotate-rule-button">すべて<br>左</span>
+                            <span class="rule-button-visual global-rotate-rule-button">すべて<br>右</span>
+                        </div>
+                        <div class="rule-text-content">
+                            土台と<span style="color: #f4d03f;">箱すべて左右90度回転</span>させる。
+                        </div>
+                    </li>
                 </ul>
             </div>
         </section>
 
-        <section id="box-selection">
-            <h2>利用可能な箱</h2>
-            <div id="available-boxes">
-                </div>
-        </section>
-
-        <section id="stage-area">
-            <h2>土台（ここに箱を積み重ねよう）</h2>
-            <div id="stage">
-                <div class="box stage-slot" data-slot-id="0" style="background-color: #8c4c3e; border: 2px solid #6a3a30; margin-bottom: 0;">
-                    土台
-                    <div class="box-face bottom" style="transform: rotateX(-90deg) translateZ(50px); background-color: #8c4c3e; color: white;">
-                        <div class="vertical-text">
-                            <span>土</span><span>台</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="stage-slot" data-slot-id="1">箱1</div>
-                <div class="stage-slot" data-slot-id="2">箱2</div>
-                <div class="stage-slot" data-slot-id="3">箱3</div>
-                <div class="stage-slot" data-slot-id="4">箱4</div>
-                <div class="stage-slot" data-slot-id="5">箱5</div>
-                <div class="stage-slot" data-slot-id="6">箱6</div>
-                <div class="stage-slot" data-slot-id="7">箱7</div>
-                <div class="stage-slot" data-slot-id="8">箱8</div>
-                <div class="stage-slot" data-slot-id="9">箱9</div>
+        <div id="stage-area" style="padding: 0 20px 20px; border: none; margin-bottom: 20px;">
+            <div id="puzzle-stage">
+                <!-- 箱と土台がJavaScriptで挿入されます -->
             </div>
-            <button class="check-button" id="check-order-button">箱の積み方を確認</button>
-        </section>
+            <button class="action-button" id="check-solution-button">判定</button>
+        </div>
 
         <section id="result-area" style="display: none;">
             <h2>結果</h2>
-            <p id="result-text"></p>
-            <button class="check-button" id="next-char-button" style="display: none;">次の文字を見る</button>
-            <button class="check-button" id="reset-button" style="display: none;">最初からやり直す</button>
+            <p id="result-text" style="text-align: center; font-size: 1.3em; color: #ffffff; min-height: 50px;"></p>
         </section>
+    </div>
+
+    <!-- モーダルウィンドウ (正誤判定・最終解答表示用) -->
+    <div id="check-result-modal" class="modal modal-hidden">
+        <div class="modal-content">
+            <h3 id="result-modal-title"></h3>
+            <span id="result-modal-icon" class="modal-answer-char" style="font-size: 4em; margin-bottom: 0;"></span>
+            <p id="result-modal-message" style="color: #ffffff; margin-top: 10px; line-height: 1.5;"></p>
+            <button id="result-modal-close-button" class="action-button" style="margin-top: 20px;">閉じる</button>
+        </div>
     </div>
 
     <div id="answer-modal" class="modal modal-hidden">
         <div class="modal-content">
-            <h3>穴から見えた文字</h3>
+            <h3>最終解答</h3>
             <span id="modal-char" class="modal-answer-char"></span>
-            <p id="modal-message" class="modal-message"></p>
-            <button id="modal-next-button" class="modal-button">次へ</button>
-            <button id="modal-finish-button" class="modal-button modal-hidden">ゲームクリア！</button>
+            <p id="modal-message" style="color: #ffffff;"></p>
+            <button id="modal-finish-button" class="action-button">ゲームクリア！</button>
         </div>
     </div>
 
-    <div id="debug-info" style="display: none;">
-        現在の箱の状態:<br>
-        <pre id="debug-box-state"></pre>
-        ステージの状態:<br>
-        <pre id="debug-stage-state"></pre>
-    </div>
-
     <script>
-        // デバッグモードの切り替え (true:表示, false:非表示)
-        const DEBUG_MODE = false; 
-
-        // 謎解きデータ
-        const boxData = {
-            "box1": {
-                faces: ["くまもと", "", "", "よみ"],
-                bottomChar: "こ"
-            },
-            "box2": {
-                faces: ["とら", "ふじさん", "とうしき", ""],
-                bottomChar: "た"
-            },
-            "box3": {
-                faces: ["", "くれよん", "", "べよ"],
-                bottomChar: "え"
-            },
-            "box4": {
-                faces: ["らいぶ", "らくご", "カトラリー", ""],
-                bottomChar: "は"
-            },
-            "box5": {
-                faces: ["", "しろくま", "うた", ""],
-                bottomChar: "ま"
-            },
-            "box6": {
-                faces: ["ぶし", "", "こたつ", "らて"],
-                bottomChar: "て"
-            },
-            "box7": {
-                faces: ["しずおか", "", "かみ", ""],
-                bottomChar: "ん"
-            },
-            "box8": {
-                faces: ["かたた", "", "しゅうまい", ""],
-                bottomChar: "ろ"
-            },
-            "box9": {
-                faces: ["", "ばなな", "ひつじゅひん", "なた"],
-                bottomChar: "う"
-            }
+        // 謎解きデータ定義 (bottomCharのみが正解判定に必要)
+        const BOX_DATA = {
+            "box1": { bottomChar: "こ" }, 
+            "box2": { bottomChar: "た" },
+            "box3": { bottomChar: "え" },
+            "box4": { bottomChar: "は" },
+            "box5": { bottomChar: "ま" },
+            "box6": { bottomChar: "て" },
+            "box7": { bottomChar: "ん" },
+            "box8": { bottomChar: "ろ" },
+            "box9": { bottomChar: "う" }
         };
 
-        // 正しい答えの羅列
-        const correctAnswerSequence = "こたえはまてんろう".split('');
+        const CORRECT_ORDER = ["box1", "box2", "box3", "box4", "box5", "box6", "box7", "box8", "box9"];
+        const CORRECT_FINAL_FACE_INDEX = 1; // 最終的に正面に表示されるべき面 (Face 2 = Index 1)
+        const FINAL_ANSWER_TEXT = "こたえはまてんろう"; 
+
+        // ゲームの状態
+        let globalRotation = 0; // 0-3: 土台による全体回転オフセット
+        // currentStack: [{ id: 'boxX', rotation: 0-3 }] の配列 (Bottom to Top)
+        let currentStack = []; 
         
-        // 箱のDOM要素を保持する配列
-        const boxes = [];
-        // ステージのスロット要素を保持する配列
-        const stageSlots = [];
-        // 現在ステージに配置されている箱の情報を保持
-        const stage = Array(9).fill(null); // [null, {id: 'box1', rotation: 0}, ...]
+        // --- ユーティリティ ---
+        
+        // 画像URLを生成 (ファイル名規則: {itemId}_face{faceIndex}.png)
+        function getImageUrl(itemId, faceIndex) {
+            return `${itemId}_face${faceIndex}.png`; 
+        }
 
-        let currentDraggingBox = null;
-        let currentModalCharIndex = 0; // 現在表示中の文字のインデックス
+        // 配列をシャッフル
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
 
-        // --- 初期化処理 ---
+        // --- 初期化 ---
         function initGame() {
-            const availableBoxesContainer = document.getElementById('available-boxes');
-            const stageElement = document.getElementById('stage');
-            availableBoxesContainer.innerHTML = ''; // 初期化
-
-            // 箱を作成し、ドラッグ＆ドロップと回転イベントを設定
-            for (let i = 1; i <= 9; i++) {
-                const boxId = `box${i}`;
-                const boxElement = createBoxElement(boxId, boxData[boxId]);
-                availableBoxesContainer.appendChild(boxElement);
-                boxes.push(boxElement);
-            }
-
-            // ステージスロットを生成し、ドロップイベントを設定 (最下段の土台除く)
-            for (let i = 1; i <= 9; i++) {
-                const slot = stageElement.querySelector(`.stage-slot[data-slot-id="${i}"]`);
-                if (slot) {
-                    stageSlots.push(slot);
-                    slot.addEventListener('dragover', allowDrop);
-                    slot.addEventListener('drop', dropBox);
-                    slot.addEventListener('dragleave', removeDragOver);
-                }
-            }
+            // 初期スタックの生成 (ランダムな順番と初期回転)
+            let boxIds = Object.keys(BOX_DATA);
+            shuffleArray(boxIds);
             
-            // 最下段の土台にもドロップイベントを設定 (デバッグ用や万一の時)
-            const baseSlot = stageElement.querySelector('.stage-slot[data-slot-id="0"]');
-            if(baseSlot) {
-                baseSlot.addEventListener('dragover', allowDrop);
-                baseSlot.addEventListener('drop', dropBox);
-                baseSlot.addEventListener('dragleave', removeDragOver);
-            }
-
-            document.getElementById('check-order-button').addEventListener('click', checkOrder);
-            document.getElementById('modal-next-button').addEventListener('click', showNextCharInModal);
-            document.getElementById('modal-finish-button').addEventListener('click', closeModal);
-            document.getElementById('reset-button').addEventListener('click', resetGame);
+            currentStack = boxIds.map((id) => ({
+                id: id, 
+                rotation: Math.floor(Math.random() * 4), 
+            }));
             
-            if (DEBUG_MODE) {
-                document.getElementById('debug-info').style.display = 'block';
-                updateDebugInfo();
-            }
+            globalRotation = Math.floor(Math.random() * 4); 
+
+            renderStack();
+
+            document.getElementById('check-solution-button').addEventListener('click', checkSolution);
+            document.getElementById('result-modal-close-button').addEventListener('click', closeResultModal);
         }
 
-        // 箱のDOM要素を作成する関数
-        function createBoxElement(id, data) {
-            const box = document.createElement('div');
-            box.classList.add('box');
-            box.setAttribute('draggable', 'true');
-            box.dataset.id = id;
-            box.dataset.rotation = 0; // 0:側面①, 90:側面②, 180:側面③, 270:側面④
-            box.dataset.currentFace = 0; // 現在表示されているfaceIndex
+        // --- レンダリング ---
+        function renderStack() {
+            const stage = document.getElementById('puzzle-stage');
+            stage.innerHTML = ''; 
 
-            // 前面
-            const front = document.createElement('div');
-            front.classList.add('box-face', 'front');
-            front.innerHTML = `<div class="vertical-text">${formatText(data.faces[0])}</div>`;
-            box.appendChild(front);
+            // 土台の描画
+            const baseWrapper = document.createElement('div');
+            baseWrapper.classList.add('box-wrapper', 'base-wrapper');
 
-            // 右面
-            const right = document.createElement('div');
-            right.classList.add('box-face', 'right');
-            right.innerHTML = `<div class="vertical-text">${formatText(data.faces[1])}</div>`;
-            box.appendChild(right);
+            const baseRotateLeftButton = createGlobalRotateButton('すべて<br>左', rotateAllBoxesLeft);
+            const baseRotateRightButton = createGlobalRotateButton('すべて<br>右', rotateAllBoxesRight);
 
-            // 背面
-            const back = document.createElement('div');
-            back.classList.add('box-face', 'back');
-            back.innerHTML = `<div class="vertical-text">${formatText(data.faces[2])}</div>`;
-            box.appendChild(back);
-
-            // 左面
-            const left = document.createElement('div');
-            left.classList.add('box-face', 'left');
-            left.innerHTML = `<div class="vertical-text">${formatText(data.faces[3])}</div>`;
-            box.appendChild(left);
-
-            // 底面 (穴から見える文字用)
-            const bottom = document.createElement('div');
-            bottom.classList.add('box-face', 'bottom');
-            bottom.innerHTML = `<div class="hole"></div><span style="font-size: 2em; color: #4b3832;">${data.bottomChar}</span>`;
-            box.appendChild(bottom);
-
-            // イベントリスナー
-            box.addEventListener('click', rotateBox);
-            box.addEventListener('dragstart', dragStart);
-            box.addEventListener('dragend', dragEnd);
-
-            return box;
-        }
-
-        // テキストを縦書き風に整形
-        function formatText(text) {
-            if (!text) return '&nbsp;'; // 空の場合はスペース
-            return text.split('').map(char => `<span>${char}</span>`).join('');
-        }
-
-        // --- ドラッグ＆ドロップ処理 ---
-        function dragStart(e) {
-            currentDraggingBox = this;
-            e.dataTransfer.setData('text/plain', this.dataset.id);
-            this.classList.add('dragging');
-            // ドラッグ中のゴーストイメージをカスタム
-            const dragImg = this.cloneNode(true);
-            dragImg.style.position = 'absolute';
-            dragImg.style.top = '-1000px';
-            document.body.appendChild(dragImg);
-            e.dataTransfer.setDragImage(dragImg, 50, 50); // ドラッグ中のイメージとそのオフセット
-            setTimeout(() => dragImg.remove(), 0); // すぐに削除
-        }
-
-        function dragEnd() {
-            if (currentDraggingBox) {
-                currentDraggingBox.classList.remove('dragging');
-                currentDraggingBox = null;
-            }
-        }
-
-        function allowDrop(e) {
-            e.preventDefault();
-            this.classList.add('drag-over'); // ドラッグ中の視覚的なフィードバック
-        }
-
-        function dropBox(e) {
-            e.preventDefault();
-            this.classList.remove('drag-over');
-
-            const boxId = e.dataTransfer.getData('text/plain');
-            const boxToMove = boxes.find(b => b.dataset.id === boxId);
+            const baseDisplay = document.createElement('div');
+            baseDisplay.classList.add('base-box-display');
             
-            if (!boxToMove) return;
+            const baseBox = document.createElement('div');
+            baseBox.classList.add('base-box');
+            
+            // 画像挿入
+            const baseImage = document.createElement('img');
+            baseImage.src = getImageUrl("base", globalRotation);
+            baseBox.appendChild(baseImage);
+            
+            baseDisplay.appendChild(baseBox);
+            baseWrapper.appendChild(baseRotateLeftButton); 
+            baseWrapper.appendChild(baseDisplay);
+            baseWrapper.appendChild(baseRotateRightButton); 
+            stage.appendChild(baseWrapper);
 
-            // 元の場所から箱を削除
-            const oldSlotIndex = stage.findIndex(item => item && item.id === boxId);
-            if (oldSlotIndex !== -1) {
-                stage[oldSlotIndex] = null;
-                const oldSlotElement = stageSlots[oldSlotIndex];
-                if (oldSlotElement) {
-                    oldSlotElement.appendChild(document.createTextNode(`箱${oldSlotIndex + 1}`));
-                    oldSlotElement.style.backgroundColor = '#fdfaf7';
-                    oldSlotElement.style.color = '#a09080';
-                }
-            } else {
-                // available-boxes から削除
-                const availableBoxParent = document.getElementById('available-boxes');
-                if (availableBoxParent.contains(boxToMove)) {
-                    availableBoxParent.removeChild(boxToMove);
-                }
-            }
-
-            // 新しいスロットに配置
-            const targetSlotId = parseInt(this.dataset.slotId);
-            if (!isNaN(targetSlotId) && targetSlotId > 0) { // 土台(slotId=0)には置けない
-                const stageIndex = targetSlotId - 1; // stage配列のインデックスは0から
+            // 9つの箱の描画 (Bottom to Top)
+            for (let i = 0; i < currentStack.length; i++) {
+                const boxInfo = currentStack[i];
                 
-                // もし新しいスロットに既に箱があれば、available-boxesに戻す
-                if (stage[stageIndex]) {
-                    const existingBoxId = stage[stageIndex].id;
-                    const existingBoxElement = boxes.find(b => b.dataset.id === existingBoxId);
-                    if (existingBoxElement) {
-                        document.getElementById('available-boxes').appendChild(existingBoxElement);
-                    }
-                }
+                const wrapper = document.createElement('div');
+                wrapper.classList.add('box-wrapper');
+                wrapper.dataset.index = i;
+                
+                const downButton = createSwapButton('▼', i, i === 0, swapBoxes);
+                const rotateLeftButton = createRotateButton('左', i, rotateIndividualBoxLeft);
+                const rotateRightButton = createRotateButton('右', i, rotateIndividualBoxRight);
+                const upButton = createSwapButton('▲', i, i === currentStack.length - 1, swapBoxes);
 
-                // 箱をステージスロットに配置
-                stage[stageIndex] = { id: boxId, rotation: parseInt(boxToMove.dataset.rotation) };
-                this.innerHTML = ''; // スロット内のテキストをクリア
-                this.style.backgroundColor = 'transparent';
-                this.style.color = 'transparent';
-                this.appendChild(boxToMove);
-                updateDebugInfo();
-            } else {
-                // 土台(slotId=0)や無効なスロットへのドロップはavailable-boxesに戻す
-                document.getElementById('available-boxes').appendChild(boxToMove);
+                // 現在表示すべき面を計算: (個別回転 + 全体回転オフセット) % 4
+                const currentMainFaceIndex = (boxInfo.rotation + globalRotation) % 4;
+
+                const boxDisplay = document.createElement('div');
+                boxDisplay.classList.add('box-display');
+                
+                // 画像挿入
+                const boxImage = document.createElement('img');
+                boxImage.src = getImageUrl(boxInfo.id, currentMainFaceIndex);
+                boxDisplay.appendChild(boxImage);
+                
+                boxDisplay.title = `${boxInfo.id.toUpperCase()} - 面${currentMainFaceIndex + 1}`;
+                
+                wrapper.appendChild(downButton);
+                wrapper.appendChild(rotateLeftButton);
+                wrapper.appendChild(boxDisplay);
+                wrapper.appendChild(rotateRightButton);
+                wrapper.appendChild(upButton);
+                stage.appendChild(wrapper);
             }
         }
 
-        function removeDragOver() {
-            this.classList.remove('drag-over');
+        // ボタン生成ヘルパー関数 (Swap)
+        function createSwapButton(text, index, isDisabled, handler) {
+            const button = document.createElement('button');
+            button.classList.add('swap-button');
+            button.textContent = text; 
+            button.dataset.index = index;
+            button.disabled = isDisabled;
+            button.addEventListener('click', handler);
+            return button;
         }
 
-        // --- 箱の回転処理 ---
-        function rotateBox(e) {
-            // ドラッグ中のクリックイベントは無視
-            if (e.target.closest('.box').classList.contains('dragging')) {
-                return;
+        // ボタン生成ヘルパー関数 (個別回転)
+        function createRotateButton(text, index, handler) {
+            const button = createSwapButton(text, index, false, handler);
+            button.classList.add('rotate-button');
+            return button;
+        }
+
+        // ボタン生成ヘルパー関数 (全体回転)
+        function createGlobalRotateButton(htmlText, handler) {
+            const button = document.createElement('button');
+            button.classList.add('swap-button', 'global-rotate-button');
+            button.innerHTML = htmlText;
+            button.addEventListener('click', handler);
+            return button;
+        }
+
+        // --- 操作 ---
+        
+        // 隣接する箱の入れ替え
+        function swapBoxes(e) {
+            const indexA = parseInt(e.currentTarget.dataset.index);
+            const direction = e.currentTarget.textContent === '▲' ? 1 : -1;
+            const indexB = indexA + direction;
+
+            if (indexB >= 0 && indexB < currentStack.length) {
+                [currentStack[indexA], currentStack[indexB]] = [currentStack[indexB], currentStack[indexA]];
+                renderStack();
             }
-            // 親要素のboxに対して回転処理を行う
-            const box = e.currentTarget;
-            let currentRotation = parseInt(box.dataset.rotation || 0);
-            currentRotation = (currentRotation + 90) % 360;
-            box.dataset.rotation = currentRotation;
-            box.style.transform = `rotateY(${currentRotation}deg)`;
-
-            // 現在表示されている面のインデックスを更新
-            box.dataset.currentFace = (parseInt(box.dataset.currentFace) + 1) % 4;
-
-            updateDebugInfo();
+        }
+        
+        // 個別の箱の右回転
+        function rotateIndividualBoxRight(e) {
+            const index = parseInt(e.currentTarget.dataset.index);
+            if (index >= 0 && index < currentStack.length) {
+                currentStack[index].rotation = (currentStack[index].rotation + 1) % 4;
+                renderStack();
+            }
         }
 
-        // --- 正誤判定処理 ---
-        function checkOrder() {
-            document.getElementById('result-area').style.display = 'block';
-            document.getElementById('check-order-button').style.display = 'none';
+        // 個別の箱の左回転
+        function rotateIndividualBoxLeft(e) {
+            const index = parseInt(e.currentTarget.dataset.index);
+            if (index >= 0 && index < currentStack.length) {
+                currentStack[index].rotation = (currentStack[index].rotation - 1 + 4) % 4;
+                renderStack();
+            }
+        }
 
-            let isCorrectOrder = true;
-            let isCorrectFace = true;
+        // 全ての箱の右回転
+        function rotateAllBoxesRight() {
+            globalRotation = (globalRotation + 1) % 4;
+            renderStack();
+        }
 
-            for (let i = 0; i < 9; i++) {
-                const expectedBoxId = `box${i + 1}`; // 箱1, 箱2, ...
-                const placedBox = stage[i];
+        // 全ての箱の左回転
+        function rotateAllBoxesLeft() {
+            globalRotation = (globalRotation - 1 + 4) % 4;
+            renderStack();
+        }
 
-                if (!placedBox || placedBox.id !== expectedBoxId) {
-                    isCorrectOrder = false;
+        // --- 判定ロジック ---
+
+        function checkSolution() {
+            // 1. 順番チェック
+            let isOrderCorrect = true;
+            for (let i = 0; i < currentStack.length; i++) {
+                if (currentStack[i].id !== CORRECT_ORDER[i]) {
+                    isOrderCorrect = false;
                     break;
                 }
+            }
+            
+            // 2. 回転状態チェック
+            const TARGET_FACE_INDEX = CORRECT_FINAL_FACE_INDEX;
+            let isRotationCorrect = true;
+
+            for (let i = 0; i < currentStack.length; i++) {
+                // 現在の正面表示面: (個別回転 + 全体回転オフセット) % 4
+                const currentDisplayedFace = (currentStack[i].rotation + globalRotation) % 4;
                 
-                // 側面①が正面 (rotation=0) であることを確認
-                if (placedBox.rotation !== 0) {
-                    isCorrectFace = false;
+                if (currentDisplayedFace !== TARGET_FACE_INDEX) {
+                    isRotationCorrect = false;
+                    break;
                 }
             }
-
-            const resultTextElement = document.getElementById('result-text');
-            const nextCharButton = document.getElementById('next-char-button');
-            const resetButton = document.getElementById('reset-button');
             
-            if (isCorrectOrder && isCorrectFace) {
-                resultTextElement.innerHTML = '<span class="correct-message">正解！穴から文字が見えるよ！</span>';
-                nextCharButton.style.display = 'block';
-                currentModalCharIndex = 0;
-                showNextCharInModal(); // 最初の文字をモーダルで表示
+            if (isOrderCorrect && isRotationCorrect) {
+                showResultModal(true);
+                document.getElementById('check-solution-button').style.display = 'none';
             } else {
-                let errorMessage = '<span class="incorrect-message">残念！箱の積み方か向きが違うよ。</span><br>もう一度確認してみよう。';
-                if (!isCorrectOrder) {
-                    errorMessage += '<br><small>(箱の順番を確認してね)</small>';
-                }
-                if (!isCorrectFace) {
-                    errorMessage += '<br><small>(箱の向き(側面①)を確認してね)</small>';
-                }
-                resultTextElement.innerHTML = errorMessage;
-                resetButton.style.display = 'block';
+                showResultModal(false, '残念！まだどこかが違います。');
             }
         }
 
-        // --- モーダル表示と文字表示処理 ---
-        function showNextCharInModal() {
-            const modal = document.getElementById('answer-modal');
-            const modalChar = document.getElementById('modal-char');
-            const modalMessage = document.getElementById('modal-message');
-            const modalNextButton = document.getElementById('modal-next-button');
-            const modalFinishButton = document.getElementById('modal-finish-button');
+        // --- 判定結果モーダル表示 ---
+        function showResultModal(isCorrect, message) {
+            const modal = document.getElementById('check-result-modal');
+            const title = document.getElementById('result-modal-title');
+            const icon = document.getElementById('result-modal-icon');
+            const msg = document.getElementById('result-modal-message');
+            const closeButton = document.getElementById('result-modal-close-button');
+
+            title.textContent = isCorrect ? '正解！' : '不正解';
             
-            if (currentModalCharIndex < correctAnswerSequence.length) {
-                modalChar.textContent = correctAnswerSequence[currentModalCharIndex];
-                modalMessage.textContent = `${currentModalCharIndex + 1}文字目だよ。`;
-                modal.classList.remove('modal-hidden');
-                modal.style.display = 'flex'; // Flex to center content
-
-                currentModalCharIndex++;
-
-                if (currentModalCharIndex === correctAnswerSequence.length) {
-                    // 全ての文字を表示し終えたら
-                    modalNextButton.classList.add('modal-hidden');
-                    modalFinishButton.classList.remove('modal-hidden');
-                    modalMessage.textContent = '全ての文字を読み終えたね！ゲームクリア！';
-                } else {
-                    modalNextButton.classList.remove('modal-hidden');
-                    modalFinishButton.classList.add('modal-hidden');
-                }
-                // 上の箱を非表示にするアニメーション（視覚的な演出）
-                const boxToRemoveIndex = currentModalCharIndex - 1; // 0番目の文字を表示したら箱1を消す
-                if (boxToRemoveIndex >= 0 && boxToRemoveIndex < 9) {
-                    const boxElement = stageSlots[boxToRemoveIndex].querySelector('.box');
-                    if (boxElement) {
-                        boxElement.style.opacity = '0';
-                        boxElement.style.pointerEvents = 'none'; // クリックできないように
-                        boxElement.style.transform = `translateY(-100px) rotateY(${boxElement.dataset.rotation}deg)`; // 上に移動
-                    }
-                }
+            if (isCorrect) {
+                icon.innerHTML = `<span style="font-size: 1.5em; text-shadow: none;">${FINAL_ANSWER_TEXT}</span>`; 
+                icon.style.color = '#f4d03f';
+                msg.innerHTML = 'コンプリートサイトに戻り、最後の答えを入力しましょう。';
+                closeButton.textContent = 'ゲームクリア！'; 
             } else {
-                // 全ての文字を見終わった後の挙動（モーダルを閉じるなど）
-                closeModal();
-                document.getElementById('result-text').innerHTML = '<span class="correct-message">ゲームクリア！お疲れ様でした！</span>';
-                document.getElementById('next-char-button').style.display = 'none';
-                document.getElementById('reset-button').style.display = 'block';
+                icon.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                icon.style.color = '#e74c3c';
+                msg.innerHTML = message; 
+                closeButton.textContent = '閉じる';
             }
+
+            modal.style.display = 'flex';
+            modal.classList.remove('modal-hidden');
         }
 
-        function closeModal() {
-            document.getElementById('answer-modal').classList.add('modal-hidden');
-            document.getElementById('answer-modal').style.display = 'none';
+        function closeResultModal() {
+            document.getElementById('check-result-modal').classList.add('modal-hidden');
+            document.getElementById('check-result-modal').style.display = 'none';
         }
 
-        // --- ゲームリセット ---
-        function resetGame() {
-            // ステージをリセット
-            stage.fill(null);
-            stageSlots.forEach((slot, index) => {
-                slot.innerHTML = `箱${index + 1}`;
-                slot.style.backgroundColor = '#fdfaf7';
-                slot.style.color = '#a09080';
-            });
-
-            // 全ての箱をavailable-boxesに戻し、回転をリセット
-            const availableBoxesContainer = document.getElementById('available-boxes');
-            boxes.forEach(box => {
-                box.style.transform = 'rotateY(0deg)';
-                box.dataset.rotation = 0;
-                box.dataset.currentFace = 0;
-                box.style.opacity = '1';
-                box.style.pointerEvents = 'auto';
-                availableBoxesContainer.appendChild(box);
-            });
-
-            // UI要素をリセット
-            document.getElementById('result-area').style.display = 'none';
-            document.getElementById('result-text').textContent = '';
-            document.getElementById('check-order-button').style.display = 'block';
-            document.getElementById('next-char-button').style.display = 'none';
-            document.getElementById('reset-button').style.display = 'none';
-            closeModal(); // モーダルが開いていたら閉じる
-            currentModalCharIndex = 0;
-
-            updateDebugInfo();
-        }
-
-        // --- デバッグ情報更新 ---
-        function updateDebugInfo() {
-            if (DEBUG_MODE) {
-                document.getElementById('debug-box-state').textContent = JSON.stringify(boxes.map(b => ({
-                    id: b.dataset.id,
-                    rotation: b.dataset.rotation,
-                    currentFace: b.dataset.currentFace
-                })), null, 2);
-                document.getElementById('debug-stage-state').textContent = JSON.stringify(stage, null, 2);
-            }
-        }
-
-        // ページロード時にゲームを初期化
         document.addEventListener('DOMContentLoaded', initGame);
     </script>
 </body>
